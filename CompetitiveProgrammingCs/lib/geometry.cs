@@ -16,7 +16,7 @@ namespace GeometryLibrary
         public static readonly double EPS = 1E-9;
     }
 
-    internal class Point2D
+    internal class Point2D: IComparable<Point2D>
     {
         public ftype X { get; set; }
         public ftype Y { get; set; }
@@ -28,19 +28,29 @@ namespace GeometryLibrary
             this.Y = y;
         }
 
-        public static Point2D operator +(Point2D left, Point2D right) => new Point2D(left.X + right.X, left.Y + right.Y);
-        public static Point2D operator -(Point2D left, Point2D right) => new Point2D(left.X - right.X, left.Y - right.Y);
+        public static Point2D operator +(Point2D a, Point2D b) => new Point2D(a.X + b.X, a.Y + b.Y);
+        public static Point2D operator -(Point2D a, Point2D b) => new Point2D(a.X - b.X, a.Y - b.Y);
         public static Point2D operator *(Point2D p, ftype v) => new Point2D(p.X * v, p.Y * v);
         public static Point2D operator *(ftype v, Point2D p) => p * v;
         public static Point2D operator /(Point2D p, ftype v) => new Point2D(p.X / v, p.Y / v);
-
+        public static Point2D operator *(Point2D a, Point3D b) => new Point2D(a.X * b.X - a.Y * b.Y, a.X * b.Y + a.Y * b.X);
         public override string ToString()
         {
             return $"{X} {Y}";
         }
+
+        public int CompareTo(Point2D? other)
+        {
+            if (other == null) return 1;
+            if (this.X - other.X < Constant.EPS) return -1;
+            if (this.X - other.X > Constant.EPS) return 1;
+            if (this.Y - other.Y < Constant.EPS) return -1;            
+            if (this.Y - other.Y > Constant.EPS) return 1;
+            return 0;
+        }
     }
 
-    internal class Point3D
+    internal class Point3D: IComparable<Point3D>
     {
         public ftype X { get; set; }
         public ftype Y { get; set; }
@@ -54,14 +64,26 @@ namespace GeometryLibrary
             this.Z = z;
         }
 
-        public static Point3D operator +(Point3D left, Point3D right) => new Point3D(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
-        public static Point3D operator -(Point3D left, Point3D right) => new Point3D(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
+        public static Point3D operator +(Point3D a, Point3D b) => new Point3D(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        public static Point3D operator -(Point3D a, Point3D b) => new Point3D(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
         public static Point3D operator *(Point3D p, ftype v) => new Point3D(p.X * v, p.Y * v, p.Z * v);
         public static Point3D operator *(ftype v, Point3D p) => p * v;
         public static Point3D operator /(Point3D p, ftype v) => new Point3D(p.X / v, p.Y / v, p.Z / v);
         public override string ToString()
         {
             return $"{X} {Y} {Z}";
+        }
+
+        public int CompareTo(Point3D? other)
+        {
+            if (other == null) return 1;
+            if (this.X - other.X < Constant.EPS) return -1;
+            if (this.X - other.X > Constant.EPS) return 1;
+            if (this.Y - other.Y < Constant.EPS) return -1;
+            if (this.Y - other.Y > Constant.EPS) return 1;
+            if (this.Z - other.Z < Constant.EPS) return -1;
+            if (this.Z - other.Z > Constant.EPS) return 1;
+            return 0;
         }
     }
 
@@ -101,6 +123,16 @@ namespace GeometryLibrary
         /// ベクトルa, bの外積
         /// </summary>
         public static ftype Cross(Point2D a, Point2D b) => a.X * b.Y - b.X * a.Y;
+
+        /// <summary>
+        /// ベクトルa, bの外積
+        /// </summary>
+        public static ftype Det(Point2D a, Point2D b) => Cross(a, b);
+
+        /// <summary>
+        /// ベクトルaのx軸正方向からの傾き
+        /// </summary>
+        public static double Arg(Point2D a) => Math.Atan2(a.Y, a.X);
 
         /// <summary>
         /// ベクトルa, bの外積
@@ -147,5 +179,7 @@ namespace GeometryLibrary
                                  Triple(x, y, d)) / triple;
             return true;
         }
+
+
     }
 }
