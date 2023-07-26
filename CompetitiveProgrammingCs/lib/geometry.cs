@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -16,7 +17,7 @@ namespace GeometryLibrary
         public static readonly double EPS = 1E-9;
     }
 
-    internal class Point2D: IComparable<Point2D>
+    internal class Point2D : IComparable<Point2D>
     {
         public ftype X { get; set; }
         public ftype Y { get; set; }
@@ -24,8 +25,8 @@ namespace GeometryLibrary
         public Point2D() { }
         public Point2D(ftype x, ftype y)
         {
-            this.X = x;
-            this.Y = y;
+            X = x;
+            Y = y;
         }
 
         public static Point2D operator +(Point2D a, Point2D b) => new Point2D(a.X + b.X, a.Y + b.Y);
@@ -34,6 +35,14 @@ namespace GeometryLibrary
         public static Point2D operator *(ftype v, Point2D p) => p * v;
         public static Point2D operator /(Point2D p, ftype v) => new Point2D(p.X / v, p.Y / v);
         public static Point2D operator *(Point2D a, Point3D b) => new Point2D(a.X * b.X - a.Y * b.Y, a.X * b.Y + a.Y * b.X);
+        public void Normalize()
+        {
+            if (X == 0 && Y == 0)
+                return;
+            double len = GeomUtils.Abs(this);
+            X /= len;
+            Y /= len;
+        }
         public override string ToString()
         {
             return $"{X} {Y}";
@@ -44,13 +53,13 @@ namespace GeometryLibrary
             if (other == null) return 1;
             if (this.X - other.X < Constant.EPS) return -1;
             if (this.X - other.X > Constant.EPS) return 1;
-            if (this.Y - other.Y < Constant.EPS) return -1;            
+            if (this.Y - other.Y < Constant.EPS) return -1;
             if (this.Y - other.Y > Constant.EPS) return 1;
             return 0;
         }
     }
 
-    internal class Point3D: IComparable<Point3D>
+    internal class Point3D : IComparable<Point3D>
     {
         public ftype X { get; set; }
         public ftype Y { get; set; }
@@ -59,9 +68,9 @@ namespace GeometryLibrary
         public Point3D() { }
         public Point3D(ftype x, ftype y, ftype z)
         {
-            this.X = x;
-            this.Y = y;
-            this.Z = z;
+            X = x;
+            Y = y;
+            Z = z;
         }
 
         public static Point3D operator +(Point3D a, Point3D b) => new Point3D(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
@@ -69,10 +78,20 @@ namespace GeometryLibrary
         public static Point3D operator *(Point3D p, ftype v) => new Point3D(p.X * v, p.Y * v, p.Z * v);
         public static Point3D operator *(ftype v, Point3D p) => p * v;
         public static Point3D operator /(Point3D p, ftype v) => new Point3D(p.X / v, p.Y / v, p.Z / v);
+        public void Normalize()
+        {
+            if (X == 0 && Y == 0 && Z == 0)
+                return;
+            double len = GeomUtils.Abs(this);
+            X /= len;
+            Y /= len;
+            Z /= len;
+        }
         public override string ToString()
         {
             return $"{X} {Y} {Z}";
         }
+
 
         public int CompareTo(Point3D? other)
         {
@@ -105,9 +124,19 @@ namespace GeometryLibrary
         public static ftype Norm(Point2D a) => Dot(a, a);
 
         /// <summary>
+        /// ベクトルaの長さの2乗（L2ノルム）
+        /// </summary>
+        public static ftype Norm(Point3D a) => Dot(a, a);
+
+        /// <summary>
         /// ベクトルaの長さ
         /// </summary>
         public static double Abs(Point2D a) => Math.Sqrt(Norm(a));
+
+        /// <summary>
+        /// ベクトルaの長さ
+        /// </summary>
+        public static double Abs(Point3D a) => Math.Sqrt(Norm(a));
 
         /// <summary>
         /// ベクトルaをベクトルbに投影した際の長さ
@@ -180,6 +209,22 @@ namespace GeometryLibrary
             return true;
         }
 
-
+        /// <summary>
+        /// 3点a, b, cの順での位置関係
+        /// +1: 反時計回り
+        /// -1: 時計回り
+        /// -2: 一直線上b - a - c
+        /// +2: 一直線上a - b - c
+        ///  0: 一直線上a - c - b
+        /// </summary>
+        public static int ISP(Point2D a, Point2D b, Point2D c)
+        {
+            var signed_area = Cross(b - a, c - a);
+            if (signed_area > Constant.EPS) return 1;
+            if (signed_area < -Constant.EPS) return -1;
+            if (Dot(b - a, c - a) < -Constant.EPS) return -2;
+            if (Dot(a - b, c - b) < -Constant.EPS) return 2;
+            return 0;
+        }
     }
 }
