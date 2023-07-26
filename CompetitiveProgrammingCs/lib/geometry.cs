@@ -48,13 +48,12 @@ namespace GeometryLibrary
             return $"{X} {Y}";
         }
 
-        public int CompareTo(Point2D? other)
+        public int CompareTo(Point2D other)
         {
-            if (other == null) return 1;
             if (this.X - other.X < Constant.EPS) return -1;
-            if (this.X - other.X > Constant.EPS) return 1;
+            if (this.X - other.X > -Constant.EPS) return 1;
             if (this.Y - other.Y < Constant.EPS) return -1;
-            if (this.Y - other.Y > Constant.EPS) return 1;
+            if (this.Y - other.Y > -Constant.EPS) return 1;
             return 0;
         }
     }
@@ -93,18 +92,26 @@ namespace GeometryLibrary
         }
 
 
-        public int CompareTo(Point3D? other)
+        public int CompareTo(Point3D other)
         {
-            if (other == null) return 1;
             if (this.X - other.X < Constant.EPS) return -1;
-            if (this.X - other.X > Constant.EPS) return 1;
+            if (this.X - other.X > -Constant.EPS) return 1;
             if (this.Y - other.Y < Constant.EPS) return -1;
-            if (this.Y - other.Y > Constant.EPS) return 1;
+            if (this.Y - other.Y > -Constant.EPS) return 1;
             if (this.Z - other.Z < Constant.EPS) return -1;
-            if (this.Z - other.Z > Constant.EPS) return 1;
+            if (this.Z - other.Z > -Constant.EPS) return 1;
             return 0;
         }
     }
+
+    internal class Line2D
+    {
+        public ftype A { get; set; }
+        public ftype B { get; set; }
+        public ftype C { get; set; }
+
+    }
+
 
     internal static class GeomUtils
     {
