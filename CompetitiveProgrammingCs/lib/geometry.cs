@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -15,6 +16,7 @@ namespace GeometryLibrary
     internal class Constant
     {
         public static readonly double EPS = 1E-9;
+
     }
 
     internal class Point2D : IComparable<Point2D>
@@ -30,11 +32,12 @@ namespace GeometryLibrary
         }
 
         public static Point2D operator +(Point2D a, Point2D b) => new Point2D(a.X + b.X, a.Y + b.Y);
+        public static Point2D operator -(Point2D a) => new Point2D(-a.X, -a.Y);
         public static Point2D operator -(Point2D a, Point2D b) => new Point2D(a.X - b.X, a.Y - b.Y);
         public static Point2D operator *(Point2D p, ftype v) => new Point2D(p.X * v, p.Y * v);
         public static Point2D operator *(ftype v, Point2D p) => p * v;
         public static Point2D operator /(Point2D p, ftype v) => new Point2D(p.X / v, p.Y / v);
-        public static Point2D operator *(Point2D a, Point3D b) => new Point2D(a.X * b.X - a.Y * b.Y, a.X * b.Y + a.Y * b.X);
+        public static Point2D operator *(Point2D a, Point2D b) => new Point2D(a.X * b.X - a.Y * b.Y, a.X * b.Y + a.Y * b.X);
         public void Normalize()
         {
             if (X == 0 && Y == 0)
@@ -43,10 +46,8 @@ namespace GeometryLibrary
             X /= len;
             Y /= len;
         }
-        public override string ToString()
-        {
-            return $"{X} {Y}";
-        }
+        public override string ToString() => $"{X} {Y}";
+
 
         public int CompareTo(Point2D other)
         {
@@ -73,6 +74,7 @@ namespace GeometryLibrary
         }
 
         public static Point3D operator +(Point3D a, Point3D b) => new Point3D(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        public static Point3D operator -(Point3D a) => new Point3D(-a.X, -a.Y, -a.Z);
         public static Point3D operator -(Point3D a, Point3D b) => new Point3D(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
         public static Point3D operator *(Point3D p, ftype v) => new Point3D(p.X * v, p.Y * v, p.Z * v);
         public static Point3D operator *(ftype v, Point3D p) => p * v;
@@ -86,10 +88,7 @@ namespace GeometryLibrary
             Y /= len;
             Z /= len;
         }
-        public override string ToString()
-        {
-            return $"{X} {Y} {Z}";
-        }
+        public override string ToString() => $"{X} {Y} {Z}";
 
 
         public int CompareTo(Point3D other)
@@ -104,17 +103,70 @@ namespace GeometryLibrary
         }
     }
 
+    internal class Segment2D
+    {
+        public Point2D S { get; set; }
+        public Point2D T { get; set; }
+        public Segment2D(Point2D s, Point2D t)
+        {
+            S = s;
+            T = t;
+        }
+    }
+
+    /// <summary>
+    /// Ax + Bx + C = 0で表される直線
+    /// </summary>
     internal class Line2D
     {
         public ftype A { get; set; }
         public ftype B { get; set; }
         public ftype C { get; set; }
 
+        public Line2D() { }
+        public Line2D(double a, double b, double c)
+        {
+            A = a;
+            B = b;
+            C = c;
+        }
+        public Line2D(Point2D p, Point2D q)
+        {
+            A = p.Y - q.Y;
+            B = -(p.X - q.X);
+            C = -(A * p.X + B * p.Y);
+        }
+
+        public void Normalize()
+        {
+            double Z = Math.Sqrt(A * A + B * B);
+            A /= Z;
+            B /= Z;
+            C /= Z;
+            if (GeomUtils.Sgn(A) == -1 || (GeomUtils.Sgn(B) == -1 && GeomUtils.IsZero(A)))
+            {
+                A = -A;
+                B = -B;
+                C = -C;
+            }
+        }
+        public Point2D Normal() => new Point2D(A, B);
     }
 
 
     internal static class GeomUtils
     {
+        private static readonly double EPS = Constant.EPS;
+
+        public static int Sgn(ftype a) => (a < -EPS ? -1 : (a > EPS ? 1 : 0));
+        public static bool IsZero(ftype a) => Math.Abs(a) < EPS;
+
+        public static void swap<T>(ref T x, ref T y)
+        {
+            T tmp = x;
+            x = y;
+            y = tmp;
+        }
         /// <summary>
         /// 2ベクトルの内積
         /// </summary>
@@ -158,7 +210,17 @@ namespace GeometryLibrary
         /// <summary>
         /// ベクトルa, bの外積
         /// </summary>
+        public static ftype Cross(ftype a, ftype b, ftype c, ftype d) => a * d - b * c;
+
+        /// <summary>
+        /// ベクトルa, bの外積
+        /// </summary>
         public static ftype Cross(Point2D a, Point2D b) => a.X * b.Y - b.X * a.Y;
+
+        /// <summary>
+        /// ベクトルa, bの外積
+        /// </summary>
+        public static ftype Det(ftype a, ftype b, ftype c, ftype d) => Cross(a, b, c, d);
 
         /// <summary>
         /// ベクトルa, bの外積
@@ -191,10 +253,48 @@ namespace GeometryLibrary
         public static bool Intersect(Point2D a1, Point2D d1, Point2D a2, Point2D d2, out Point2D result)
         {
             result = new Point2D();
-            if (Math.Abs(Cross(d1, d2)) <= Constant.EPS)
+            if (Math.Abs(Cross(d1, d2)) <= EPS)
                 return false;
             result = a1 + Cross(a2 - a1, d2) / Cross(d1, d2) * d1;
             return true;
+        }
+
+        /// <summary>
+        /// 2直線ax+by+c=0の交点
+        /// </summary>
+        public static bool Intersect(Line2D m, Line2D n, out Point2D result)
+        {
+            result = new Point2D();
+            var zn = Cross(m.A, m.B, n.A, n.B);
+            if (IsZero(zn))
+                return false;
+            result.X = -Cross(m.C, m.B, n.C, m.B) / zn;
+            result.Y = -Cross(m.A, m.C, n.A, m.C) / zn;
+            return true;
+        }
+
+        /// <summary>
+        /// 数直線上の区間[a,b], [c,d]が共有点を持つか
+        /// </summary>
+        public static bool Intersect(ftype a, ftype b, ftype c, ftype d)
+        {
+            if (a > b) swap(ref a, ref b);
+            if (c > d) swap(ref c, ref d);
+            return Math.Max(a, c) <= Math.Min(b, d);
+        }
+
+        /// <summary>
+        /// 線分m, nが共有点を持つか
+        /// </summary>
+        /// <param name="m"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static bool Intersect(Segment2D m, Segment2D n)
+        {
+            if (IsZero(Cross(m.S - n.S, m.S - n.T)) && IsZero(Cross(m.T - n.S, m.T - n.T)))
+                return Intersect(m.S.X, m.T.X, n.S.X, n.T.X) && Intersect(m.S.Y, m.T.Y, n.S.Y, n.T.Y);
+            return (Sgn(Cross(m.T - m.S, n.S - m.S)) != Sgn(Cross(m.T - m.S, n.T - m.S)))
+                && (Sgn(Cross(n.T - n.S, m.S - n.S)) != Sgn(Cross(n.T - n.S, m.T - n.S)));
         }
 
         /// <summary>
@@ -204,7 +304,7 @@ namespace GeometryLibrary
         {
             result = new Point3D();
             var triple = Triple(n1, n2, n3);
-            if (Math.Abs(triple) < Constant.EPS)
+            if (Math.Abs(triple) < EPS)
                 return false;
             var x = new Point3D(n1.X, n2.X, n3.X);
             var y = new Point3D(n1.Y, n2.Y, n3.Y);
@@ -227,11 +327,22 @@ namespace GeometryLibrary
         public static int ISP(Point2D a, Point2D b, Point2D c)
         {
             var signed_area = Cross(b - a, c - a);
-            if (signed_area > Constant.EPS) return 1;
-            if (signed_area < -Constant.EPS) return -1;
-            if (Dot(b - a, c - a) < -Constant.EPS) return -2;
-            if (Dot(a - b, c - b) < -Constant.EPS) return 2;
+            if (signed_area > EPS) return 1;
+            if (signed_area < -EPS) return -1;
+            if (Dot(b - a, c - a) < -EPS) return -2;
+            if (Dot(a - b, c - b) < -EPS) return 2;
             return 0;
         }
+
+        /// <summary>
+        /// 2直線m, nが平行かどうか
+        /// </summary>
+        public static bool IsParallel(Line2D m, Line2D n) => IsZero(Cross(m.A, m.B, n.A, n.B));
+
+        /// <summary>
+        /// 2直線が一致するかどうか
+        /// </summary>
+        public static bool IsEquivalent(Line2D m, Line2D n)
+            => IsParallel(m, n) && IsZero(Cross(m.A, m.C, n.A, n.C)) && IsZero(Cross(m.B, m.C, n.B, n.C));
     }
 }
