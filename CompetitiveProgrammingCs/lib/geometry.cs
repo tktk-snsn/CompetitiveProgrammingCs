@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
+
 namespace GeometryLibrary
 {
     //using ftype = System.Int64;
@@ -122,19 +123,37 @@ namespace GeometryLibrary
         public ftype A { get; set; }
         public ftype B { get; set; }
         public ftype C { get; set; }
+        public Point2D S { get; set; }
+        public Point2D T { get; set; }
 
-        public Line2D() { }
         public Line2D(double a, double b, double c)
         {
             A = a;
             B = b;
             C = c;
+            if (!GeomUtils.IsZero(b) && !GeomUtils.IsZero(a))
+            {
+                S = new Point2D(0, -C / B);
+                T = new Point2D(-C / A, 0);
+            }
+            else if (GeomUtils.IsZero(a))
+            {
+                S = new Point2D(0, -C / B);
+                T = new Point2D(1, -C / B);
+            }
+            else
+            {
+                S = new Point2D(-C / A, 0);
+                T = new Point2D(-C / A, 1);
+            }
         }
         public Line2D(Point2D p, Point2D q)
         {
             A = p.Y - q.Y;
             B = -(p.X - q.X);
             C = -(A * p.X + B * p.Y);
+            S = p;
+            T = q;
         }
 
         public void Normalize()
@@ -150,6 +169,7 @@ namespace GeometryLibrary
                 C = -C;
             }
         }
+
         public Point2D Normal() => new Point2D(A, B);
     }
 
@@ -286,9 +306,6 @@ namespace GeometryLibrary
         /// <summary>
         /// 線分m, nが共有点を持つか
         /// </summary>
-        /// <param name="m"></param>
-        /// <param name="n"></param>
-        /// <returns></returns>
         public static bool Intersect(Segment2D m, Segment2D n)
         {
             if (IsZero(Cross(m.S - n.S, m.S - n.T)) && IsZero(Cross(m.T - n.S, m.T - n.T)))
@@ -296,6 +313,16 @@ namespace GeometryLibrary
             return (Sgn(Cross(m.T - m.S, n.S - m.S)) != Sgn(Cross(m.T - m.S, n.T - m.S)))
                 && (Sgn(Cross(n.T - n.S, m.S - n.S)) != Sgn(Cross(n.T - n.S, m.T - n.S)));
         }
+
+        /// <summary>
+        /// 線分segと直線lineが共有点を持つか
+        /// </summary>
+        public static bool Intersect(Segment2D seg, Line2D line) => ISP(line.S, line.T, seg.S) * ISP(line.S, line.T, seg.T) == 1;
+
+        /// <summary>
+        /// 線分segと直線lineが共有点を持つか
+        /// </summary>
+        public static bool Intersect(Line2D line, Segment2D seg) => Intersect(seg, line);
 
         /// <summary>
         /// 3平面（点aを通り、法線ベクトルがn）からなる点
@@ -344,5 +371,70 @@ namespace GeometryLibrary
         /// </summary>
         public static bool IsEquivalent(Line2D m, Line2D n)
             => IsParallel(m, n) && IsZero(Cross(m.A, m.C, n.A, n.C)) && IsZero(Cross(m.B, m.C, n.B, n.C));
+
+        /// <summary>
+        /// 点pと直線mの距離
+        /// </summary>
+        public static double Distance(Point2D p, Line2D m) => Math.Abs(Cross(m.T - m.S, p - m.S)) / Abs(m.T - m.S);
+
+        /// <summary>
+        /// 点pと直線mの距離
+        /// </summary>
+        public static double Distance(Line2D m, Point2D p) => Distance(p, m);
+
+        /// <summary>
+        /// 2直線の距離
+        /// </summary>
+        public static double Distance(Line2D m, Line2D n)
+        {
+            if (IsEquivalent(m, n))
+                return 0;
+            if (!IsParallel(m, n))
+                return 0;
+            return Distance(m.S, n);
+        }
+
+        /// <summary>
+        /// 直線lineと線分segの距離
+        /// </summary>
+        public static double Distance(Line2D line, Segment2D seg)
+        {
+            if (Intersect(line, seg))
+                return Math.Min(Distance(line, seg.S), Distance(line, seg.T));
+            return 0;
+        }
+
+        /// <summary>
+        /// 直線lineと線分segの距離
+        /// </summary>
+        public static double Distance(Segment2D seg, Line2D line) => Distance(line, seg);
+
+        /// <summary>
+        /// 線分segと点pの距離
+        /// </summary>
+        public static double Distance(Segment2D seg, Point2D p)
+        {
+            if (Sgn(Dot(seg.T - seg.S, p - seg.S)) == -1 || Sgn(Dot(seg.S - seg.T, p - seg.T)) == -1)
+                return Math.Min(Abs(p - seg.S), Abs(p - seg.T));
+            return Math.Abs(Cross(seg.T - seg.S, p - seg.S)) / Abs(seg.T - seg.S);
+        }
+
+        /// <summary>
+        /// 線分segと点pの距離
+        /// </summary>
+        public static double Distance(Point2D p, Segment2D seg) => Distance(seg, p);
+
+        /// <summary>
+        /// 線分m, nの距離
+        /// </summary>
+        public static double Distance(Segment2D m, Segment2D n)
+        {
+            if (Intersect(m, n))
+                return 0;
+            double res = Math.Min(Distance(m, n.S), Distance(m, n.T));
+            res = Math.Min(res, Distance(m.S, n));
+            res = Math.Min(res, Distance(m.T, n));
+            return res;
+        }
     }
 }
