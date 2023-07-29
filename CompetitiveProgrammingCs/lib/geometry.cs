@@ -173,6 +173,34 @@ namespace GeometryLibrary
         public Point2D Normal() => new Point2D(A, B);
     }
 
+    internal class Polygon2D
+    {
+        public int N { get; }
+        public List<Point2D> Points { get; }
+
+        private double _area;
+        public double Area { get { return _area; } }
+
+        private bool _isClockwise;
+        public bool IsClockwise { get { return _isClockwise; } }
+
+        public Polygon2D(List<Point2D> points)
+        {
+            N = points.Count;
+            Points = points;
+            CalcArea();
+        }
+
+        private void CalcArea()
+        {
+            double area = GeomUtils.Cross(Points[N - 1], Points[0]);
+            for (int i = 1; i < N; ++i)
+                area += GeomUtils.Cross(Points[i - 1], Points[i]);
+            _area = Math.Abs(area) * 0.5;
+            _isClockwise = GeomUtils.Sgn(area) == -1;
+        }
+    }
+
 
     internal static class GeomUtils
     {
@@ -435,6 +463,44 @@ namespace GeometryLibrary
             res = Math.Min(res, Distance(m.S, n));
             res = Math.Min(res, Distance(m.T, n));
             return res;
+        }
+
+        /// <summary>
+        /// 多角形が凸か判定する
+        /// </summary>
+        public static bool IsConvex(Polygon2D poly)
+        {
+            int N = poly.N;
+            bool cw = false;
+            bool ccw = false;
+            for (int i = 0; i < N; ++i)
+            {
+                int isp = ISP(poly.Points[i], poly.Points[(i + 1) % N], poly.Points[(i + 2) % N]);
+                if (isp == 1) cw = true;
+                if (isp == -1) ccw = true;
+            }
+            return !(cw && ccw);
+        }
+
+        /// <summary>
+        /// 点pが多角形の内部にあれば2, 辺上にあれば1, 外部にあれば0を返す
+        /// </summary>
+        public static int IsInside(Polygon2D poly, Point2D p)
+        {
+            int n = poly.N;
+            bool isInside = false;
+            for (int i = 0; i < n; ++i)
+            {
+                var a = poly.Points[i] - p;
+                var b = poly.Points[(i + 1) % n] - p;
+                if (Sgn(Dot(a, b)) != 1 && Sgn(Cross(a, b)) == 0)
+                    return 1;
+                if (a.Y > b.Y)
+                    swap(ref a, ref b);
+                if (Sgn(a.Y) != 1 && Sgn(b.Y) == 1 && Sgn(Cross(a, b)) == -1)
+                    isInside = !isInside;
+            }
+            return isInside ? 2 : 0;
         }
     }
 }
