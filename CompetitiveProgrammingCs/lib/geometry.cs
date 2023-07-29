@@ -52,11 +52,16 @@ namespace GeometryLibrary
 
         public int CompareTo(Point2D other)
         {
-            if (this.X - other.X < Constant.EPS) return -1;
-            if (this.X - other.X > -Constant.EPS) return 1;
-            if (this.Y - other.Y < Constant.EPS) return -1;
-            if (this.Y - other.Y > -Constant.EPS) return 1;
+            if (GeomUtils.Sgn(this.Y - other.Y) != 0)
+                return GeomUtils.Sgn(this.Y - other.Y);
+            if (GeomUtils.Sgn(this.X - other.X) != 0)
+                return GeomUtils.Sgn(this.X - other.X);
             return 0;
+            //if (this.X - other.X < Constant.EPS) return -1;
+            //if (this.X - other.X > -Constant.EPS) return 1;
+            //if (this.Y - other.Y < Constant.EPS) return -1;
+            //if (this.Y - other.Y > -Constant.EPS) return 1;
+            //return 0;
         }
     }
 
@@ -501,6 +506,74 @@ namespace GeometryLibrary
                     isInside = !isInside;
             }
             return isInside ? 2 : 0;
+        }
+
+        /// <summary>
+        /// 多角形polyの凸包を返す
+        /// </summary>
+        public static Polygon2D GetConvexHull(Polygon2D poly, bool isClockwise = true)
+        {
+            int ng = isClockwise ? 1 : -1;
+
+            int n = poly.N;
+            var points = poly.Points;
+            points.Sort();
+
+            List<Point2D> upper = new List<Point2D>();
+            foreach (var p in points)
+            {
+                while (upper.Count >= 2 && ISP(upper[upper.Count - 2], upper[upper.Count - 1], p) == ng)
+                    upper.RemoveAt(upper.Count - 1);
+                upper.Add(p);
+            }
+            upper.RemoveAt(upper.Count - 1);
+
+            List<Point2D> lower = new List<Point2D>();
+            points.Reverse();
+            foreach (var p in points)
+            {
+                while (lower.Count >= 2 && ISP(lower[lower.Count - 2], lower[lower.Count - 1], p) == ng)
+                    lower.RemoveAt(lower.Count - 1);
+                lower.Add(p);
+            }
+            lower.RemoveAt(lower.Count - 1);
+
+            List<Point2D> hull = new List<Point2D>();
+            foreach (var p in upper)
+                hull.Add(p);
+            foreach (var p in lower)
+                hull.Add(p);
+            return new Polygon2D(hull);
+        }
+
+        /// <summary>
+        /// 凸包上の最遠点対の距離を求める
+        /// </summary>
+        /// <param name="hull"></param>
+        /// <returns></returns>
+        public static double RotatingCaliper(Polygon2D hull)
+        {
+            int n = hull.N;
+            double dmax = double.MinValue;
+
+            Point2D p;
+            int i, j = 0;
+            for (i = 0; i < n; ++i)
+            {
+                p = hull.Points[j] - hull.Points[i];
+                while (true)
+                {
+                    if (Sgn(Abs(hull.Points[(j + 1) % n] - hull.Points[i]) - Abs(p)) != 1)
+                        break;
+                    j = (j + 1) % n;
+                    p = hull.Points[j] - hull.Points[i];
+                }
+                if (Abs(p) > dmax)
+                {
+                    dmax = Abs(p);
+                }
+            }
+            return dmax;
         }
     }
 }
